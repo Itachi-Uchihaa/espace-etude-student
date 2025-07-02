@@ -49,7 +49,7 @@ export default function SignUpForm({
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error("Les mots de passe ne correspondent pas");
       return;
     }
 
@@ -63,9 +63,22 @@ export default function SignUpForm({
       };
     } catch (err) {
       console.error("Error capturing location:", err);
+      if (err instanceof GeolocationPositionError) {
+        if (err.code === err.PERMISSION_DENIED) {
+          toast.error("La géolocalisation est nécessaire pour créer un compte. Veuillez autoriser l'accès à votre position dans les paramètres de votre navigateur.");
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          toast.error("Impossible d'obtenir votre position. Veuillez vérifier votre connexion internet et réessayer.");
+        } else if (err.code === err.TIMEOUT) {
+          toast.error("La demande de géolocalisation a expiré. Veuillez réessayer.");
+        }
+      } else {
+        toast.error("Erreur lors de la géolocalisation. Veuillez autoriser l'accès à votre position et réessayer.");
+      }
+      return;
     }
+    
     if (!location.latitude || !location.longitude) {
-      toast.error("Please turn on your Location to signup on the platform..");
+      toast.error("Veuillez activer votre géolocalisation pour vous inscrire sur la plateforme.");
       return;
     }
 
@@ -74,90 +87,108 @@ export default function SignUpForm({
       await createUser(email, password, name, location);
       router.push("/login");
     } catch (err) {
-      toast.error("Error during sign up");
+      // L'erreur est déjà gérée dans le contexte d'authentification
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleLogin = async () => {
-    // setIsLoading(true);
+  const handleGoogleSignUp = async () => {
+    // Capture location first
+    let location = { latitude: 0, longitude: 0 };
     try {
-      await loginWithGoogle();
-      router.push("/profile");
+      const position = await getLocation();
+      location = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
     } catch (err) {
+      console.error("Error capturing location:", err);
+      if (err instanceof GeolocationPositionError) {
+        if (err.code === err.PERMISSION_DENIED) {
+          toast.error("La géolocalisation est nécessaire pour créer un compte. Veuillez autoriser l'accès à votre position dans les paramètres de votre navigateur.");
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          toast.error("Impossible d'obtenir votre position. Veuillez vérifier votre connexion internet et réessayer.");
+        } else if (err.code === err.TIMEOUT) {
+          toast.error("La demande de géolocalisation a expiré. Veuillez réessayer.");
+        }
+      } else {
+        toast.error("Erreur lors de la géolocalisation. Veuillez autoriser l'accès à votre position et réessayer.");
+      }
+      return;
+    }
+    
+    if (!location.latitude || !location.longitude) {
+      toast.error("Veuillez activer votre géolocalisation pour vous inscrire sur la plateforme.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await loginWithGoogle({ autoCreate: true });
+      router.push("/settings");
+    } catch (err) {
+      // L'erreur est déjà gérée dans le contexte d'authentification
     } finally {
-      // setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0 border-none rounded-none">
-        <CardContent className="grid p-0 md:grid-cols-2 min-h-[600px]">
-          <form
-            className="p-6 lg:p-10 flex flex-col gap-6 justify-center"
-            onSubmit={handleSubmit}
-          >
-            <div className="flex flex-col gap-1">
-              <Image
-                src="/images/logo.png"
-                alt="Logo"
-                width={100}
-                height={40}
-              />
-              <h1 className="text-[30px] font-bold mt-2 text-[#212121]">
-                Create Account
-              </h1>
-              <p className="text-[#9A9A9A] text-base font-semibold">
-                Sign up to upgrade your learning skills next level
-              </p>
-            </div>
-
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
-                <div className="relative">
-                  <User2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9B9B9B]" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Enter your name"
-                    className="px-10 bg-[#F5F5F5] border-none py-[27px] font-medium text-base focus:outline-none rounded-[10px] placeholder:text-[#9B9B9B]"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
+      <Card className="overflow-hidden p-0">
+        <CardContent className="grid p-0 md:grid-cols-2 min-h-[500px] md:min-h-[600px]">
+          <form className="p-6 md:p-8" onSubmit={handleSubmit}>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col">
+                <Image
+                  src="/images/logo.png"
+                  alt="Logo"
+                  width={80}
+                  height={40}
+                />
               </div>
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-bold">Créer un compte</h1>
+                <p className="text-balance text-muted-foreground">
+                  Rejoignez notre plateforme <span className="bg-gradient-to-b from-[#101433] to-[#303C99] bg-clip-text text-transparent font-semibold">Étudiant</span>
+                </p>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="name">Nom complet</Label>
+                <Input 
+                  id="name" 
+                  type="text" 
+                  placeholder="Votre nom complet" 
+                  required 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                />
+              </div>
+              
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9B9B9B]" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your phone or email"
-                    className="px-10 bg-[#F5F5F5] border-none py-[27px] font-medium text-base focus:outline-none rounded-[10px] placeholder:text-[#9B9B9B]"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="m@example.com" 
+                  required 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                />
               </div>
-
-              <div className="grid gap-2 relative">
-                <Label htmlFor="password">Password</Label>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="password">Mot de passe</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9B9B9B]" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter password"
-                    className="px-10 bg-[#F5F5F5] border-none font-medium text-base py-[27px] focus:outline-none rounded-[10px] placeholder:text-[#9B9B9B]"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
+                  <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="********" 
+                    required 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
                   />
                   <Button
                     type="button"
@@ -167,26 +198,24 @@ export default function SignUpForm({
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="w-4 h-4 text-[#9B9B9B]" />
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <Eye className="w-4 h-4 text-[#9B9B9B]" />
+                      <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                   </Button>
                 </div>
               </div>
-
-              <div className="grid gap-2 relative">
-                <Label htmlFor="confirm-password">Confirm Password</Label>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9B9B9B]" />
-                  <Input
-                    id="confirm-password"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Enter password"
-                    value={confirmPassword}
-                    className="px-10 bg-[#F5F5F5] border-none py-[27px] font-medium text-base focus:outline-none rounded-[10px] placeholder:text-[#9B9B9B]"
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
+                  <Input 
+                    id="confirm-password" 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    placeholder="********" 
+                    required 
+                    value={confirmPassword} 
+                    onChange={(e) => setConfirmPassword(e.target.value)} 
                   />
                   <Button
                     type="button"
@@ -196,57 +225,68 @@ export default function SignUpForm({
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
                     {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4 text-[#9B9B9B]" />
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <Eye className="w-4 h-4 text-[#9B9B9B]" />
+                      <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                   </Button>
                 </div>
               </div>
-            </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full text-white" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ImSpinner6 className="text-white animate-spin" />
+                ) : (
+                  "S'inscrire"
+                )}
+              </Button>
 
-            <Button
-              type="submit"
-              className="w-full h-[50px] mt-5 bg-[#7372B7] hover:bg-[#7372B7] text-[#FFFFFF] font-semibold text-lg rounded-[10px]"
-            >
-              {isLoading ? <ImSpinner6 className="animate-spin" /> : "Sign Up"}
-            </Button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-[#888888]" />
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Ou continuer avec
+                  </span>
+                </div>
               </div>
-              <div className="relative flex justify-center">
-                <span className="bg-white px-2 text-[#9B9B9B] font-normal text-lg leading-[150%] tracking-[0%]">
-                  Or
-                </span>
+
+              <Button 
+                variant="outline" 
+                type="button" 
+                className="w-full"
+                onClick={handleGoogleSignUp}
+                disabled={isLoading}
+              >
+                <Image 
+                  src="/images/google.png" 
+                  alt="Google" 
+                  width={16} 
+                  height={16} 
+                />
+                S'inscrire avec Google
+              </Button>
+              
+              <p className="text-base font-medium text-center text-muted-foreground">
+                Déjà un compte ?{" "}
+                <Link href="/login" className="text-[#7372B7] hover:underline">
+                  Se connecter
+                </Link>
+              </p>
+              
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
+                <p className="text-sm text-muted-foreground">
+                  Rejoignez notre communauté d'étudiants.
+                </p>
               </div>
             </div>
-
-            <Button
-              variant="outline"
-              type="button"
-              className="w-full gap-2 bg-[#F5F5F5] h-[50px] border-none text-lg font-semibold cursor-pointer rounded-[10px]"
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-            >
-              <Image
-                src="/images/google.png"
-                alt="Google"
-                width={16}
-                height={16}
-              />
-              Continue with Google
-            </Button>
-
-            <p className="text-base font-medium text-center text-[#9B9B9B]">
-              Already have an account?{" "}
-              <Link href="/login" className="text-[#7372B7] hover:underline">
-                Login
-              </Link>
-            </p>
           </form>
-          <div className="hidden md:block relative bg-[#6E6CD8]">
+          <div className="hidden md:block relative bg-muted">
             {isDesktop && (
               <Image
                 src="/images/espace.png"
@@ -259,6 +299,9 @@ export default function SignUpForm({
           </div>
         </CardContent>
       </Card>
+      <div className="text-balance text-center text-xs text-white">
+        {"Pour plus d'informations, visitez notre site officiel"} <a href="https://espaceetude.com" className="text-white hover:bg-white hover:text-[#303C99] transition-all duration-300 rounded-md px-1 py-0.5">Espacetude.com</a>
+      </div>
     </div>
   );
 }

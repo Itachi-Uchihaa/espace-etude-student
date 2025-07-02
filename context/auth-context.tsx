@@ -37,13 +37,52 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: (options?: { autoCreate?: boolean }) => Promise<void>;
   logout: () => Promise<void>;
   createUser: (email: string, password: string, name: string, location?: Location) => Promise<void>;
   updateUserProfile: (data: Partial<User>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Fonction utilitaire pour traduire les erreurs Firebase
+const getErrorMessage = (errorCode: string): string => {
+  switch (errorCode) {
+    // Erreurs d'authentification
+    case 'auth/user-not-found':
+      return 'Aucun compte trouvé avec cette adresse email. Veuillez vérifier votre email ou créer un compte.';
+    case 'auth/wrong-password':
+      return 'Mot de passe incorrect. Veuillez réessayer.';
+    case 'auth/invalid-email':
+      return 'Adresse email invalide. Veuillez vérifier le format de votre email.';
+    case 'auth/user-disabled':
+      return 'Ce compte a été désactivé. Contactez l\'administrateur.';
+    case 'auth/too-many-requests':
+      return 'Trop de tentatives de connexion. Veuillez réessayer plus tard.';
+    case 'auth/network-request-failed':
+      return 'Erreur de connexion réseau. Vérifiez votre connexion internet.';
+    case 'auth/invalid-credential':
+      return 'Email ou mot de passe incorrect.';
+    case 'auth/account-exists-with-different-credential':
+      return 'Un compte existe déjà avec cette adresse email mais avec une méthode de connexion différente.';
+    case 'auth/operation-not-allowed':
+      return 'Cette méthode de connexion n\'est pas autorisée.';
+    case 'auth/weak-password':
+      return 'Le mot de passe est trop faible. Il doit contenir au moins 6 caractères.';
+    case 'auth/email-already-in-use':
+      return 'Cette adresse email est déjà utilisée par un autre compte.';
+    case 'auth/requires-recent-login':
+      return 'Cette opération nécessite une connexion récente. Veuillez vous reconnecter.';
+    case 'auth/popup-closed-by-user':
+      return 'La fenêtre de connexion Google a été fermée. Veuillez réessayer.';
+    case 'auth/popup-blocked':
+      return 'La fenêtre de connexion Google a été bloquée par votre navigateur.';
+    case 'auth/cancelled-popup-request':
+      return 'Connexion Google annulée.';
+    default:
+      return 'Une erreur inattendue s\'est produite. Veuillez réessayer.';
+  }
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -82,7 +121,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             saveUser(userData);
             
             if (pathname === '/login' || pathname === '/forgot-password' || pathname === '/reset-password' || pathname === '/') {
-              router.push('/profile');
+              router.push('/settings');
+              // Toast de succès seulement lors de la redirection depuis les pages de connexion
+              if (isLoggingIn) {
+                toast.success('Connexion réussie !');
+              }
             }
           } else {
             await signOutUser();
@@ -135,12 +178,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setUser(userData);
       saveUser(userData);
-      toast.success('Connexion réussie !');
       
-      router.push('/profile');
+      router.push('/settings');
     } catch (error: any) {
-      console.error('Erreur de connexion:', error.message);
-      toast.error(error.message || 'Erreur de connexion');
+      console.error('Erreur de connexion:', error);
+      
+      // Utiliser la fonction de traduction des erreurs Firebase
+      let errorMessage = 'Erreur de connexion';
+      
+      if (error.code) {
+        errorMessage = getErrorMessage(error.code);
+      } else if (error.message) {
+        // Pour les erreurs personnalisées
+        switch (error.message) {
+          case 'Données utilisateur non trouvées':
+            errorMessage = 'Compte utilisateur introuvable dans la base de données.';
+            break;
+          case 'Accès non autorisé. Rôle non reconnu.':
+            errorMessage = 'Accès non autorisé. Seuls les étudiants peuvent se connecter.';
+            break;
+          default:
+            errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -148,7 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (options?: { autoCreate?: boolean }) => {
     try {
       setIsLoggingIn(true);
       setLoading(true);
@@ -160,28 +222,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Google login failed. No user found.');
       }
       
-      const userRef = doc(db, 'users', firebaseUser.uid);
       const userDoc = await getUserDoc(firebaseUser.uid);
 
-      let userData: User;
-
-      // If first-time Google login, create a Firestore doc
+      // Vérifier si l'utilisateur existe déjà
       if (!userDoc.exists()) {
-        const newUserData = {
-          email: firebaseUser.email || '',
-          name: firebaseUser.displayName || '',
-          createdAt: serverTimestamp(),
-          role: 'student',
-          type: 'authWithGoogle',
-          status: 'Pending',
-          updatedAt: serverTimestamp(),
-        };
-        await setDoc(userRef, newUserData);
-        userData = { id: firebaseUser.uid, ...newUserData };
-      } else {
-        // Existing user
-        userData = { id: userDoc.id, ...userDoc.data() } as User;
+        if (options?.autoCreate) {
+          // Si l'utilisateur n'existe pas et autoCreate est true, créer un nouveau compte
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const newUserData = {
+            email: firebaseUser.email || '',
+            name: firebaseUser.displayName || '',
+            createdAt: serverTimestamp(),
+            role: 'student',
+            type: 'authWithGoogle',
+            status: 'Pending',
+            updatedAt: serverTimestamp(),
+          };
+          
+          await setDoc(userRef, newUserData);
+          const userData = { id: firebaseUser.uid, ...newUserData } as User;
+          
+          setUser(userData);
+          saveUser(userData);
+          
+          router.push('/settings');
+          return;
+        } else {
+          // Sinon, déconnecter et afficher une erreur
+          await signOutUser();
+          throw new Error('Aucun compte trouvé avec cette adresse Google. Veuillez d\'abord créer un compte.');
+        }
       }
+
+      // Utilisateur existant
+      const userData = { id: userDoc.id, ...userDoc.data() } as User;
       
       // Only allow students
       if (userData.role !== 'student') {
@@ -191,12 +265,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setUser(userData);
       saveUser(userData);
-      toast.success('Connexion réussie !');
       
-      router.push('/profile');
+      router.push('/settings');
     } catch (error: any) {
-      console.error('Erreur de connexion Google:', error.message);
-      toast.error(error.message || 'Erreur de connexion Google');
+      console.error('Erreur de connexion Google:', error);
+      
+      // Utiliser la fonction de traduction des erreurs Firebase
+      let errorMessage = 'Erreur de connexion Google';
+      
+      if (error.code) {
+        errorMessage = getErrorMessage(error.code);
+      } else if (error.message) {
+        // Pour les erreurs personnalisées
+        switch (error.message) {
+          case 'Aucun compte trouvé avec cette adresse Google. Veuillez d\'abord créer un compte.':
+            errorMessage = 'Aucun compte trouvé avec cette adresse Google. Veuillez d\'abord créer un compte.';
+            break;
+          case 'Accès non autorisé. Rôle non reconnu.':
+            errorMessage = 'Accès non autorisé. Seuls les étudiants peuvent se connecter.';
+            break;
+          default:
+            errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -248,10 +341,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Sign out the user after creating account so they can log in properly
       await signOutUser();
       
-      toast.success('Account created successfully! Please log in.');
+      toast.success('Compte créé avec succès ! Veuillez vous connecter.');
     } catch (error: any) {
-      console.error('Signup error:', error.message);
-      toast.error(error.message || 'Account creation failed');
+      console.error('Erreur de création de compte:', error);
+      
+      // Utiliser la fonction de traduction des erreurs Firebase
+      let errorMessage = 'Erreur lors de la création du compte';
+      
+      if (error.code) {
+        errorMessage = getErrorMessage(error.code);
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
       throw error;
     } finally {
       setLoading(false);
