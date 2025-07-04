@@ -10,14 +10,14 @@ import { ImSpinner6 } from "react-icons/im";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "react-toastify";
-import { useAuth } from "@/context/auth-context";
+import { useAuth } from "@/contexts/auth";
 import { useRouter } from "next/navigation";
 
 export default function SignUpForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const { createUser, loginWithGoogle } = useAuth();
+  const { createUser, signUpWithGoogle } = useAuth();
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -126,7 +126,7 @@ export default function SignUpForm({
 
     setIsLoading(true);
     try {
-      await loginWithGoogle({ autoCreate: true });
+      await signUpWithGoogle(location);
       router.push("/settings");
     } catch (err) {
       console.error("Error signing up with Google:", err);

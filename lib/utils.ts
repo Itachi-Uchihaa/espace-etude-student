@@ -67,4 +67,43 @@ export const getRelativeTime = (timestamp: FirebaseTimestamp): string => {
 	}
 	
 	return formatDate(timestamp);
+};
+
+// Fonction utilitaire pour traduire les erreurs Firebase
+export const getErrorMessage = (errorCode: string): string => {
+  switch (errorCode) {
+    // Erreurs d'authentification
+    case 'auth/user-not-found':
+      return 'Aucun compte trouvé avec cette adresse email. Veuillez vérifier votre email ou créer un compte.';
+    case 'auth/wrong-password':
+      return 'Mot de passe incorrect. Veuillez réessayer.';
+    case 'auth/invalid-email':
+      return 'Adresse email invalide. Veuillez vérifier le format de votre email.';
+    case 'auth/user-disabled':
+      return 'Ce compte a été désactivé. Contactez l\'administrateur.';
+    case 'auth/too-many-requests':
+      return 'Trop de tentatives de connexion. Veuillez réessayer plus tard.';
+    case 'auth/network-request-failed':
+      return 'Erreur de connexion réseau. Vérifiez votre connexion internet.';
+    case 'auth/invalid-credential':
+      return 'Email ou mot de passe incorrect.';
+    case 'auth/account-exists-with-different-credential':
+      return 'Un compte existe déjà avec cette adresse email mais avec une méthode de connexion différente.';
+    case 'auth/operation-not-allowed':
+      return 'Cette méthode de connexion n\'est pas autorisée.';
+    case 'auth/weak-password':
+      return 'Le mot de passe est trop faible. Il doit contenir au moins 6 caractères.';
+    case 'auth/email-already-in-use':
+      return 'Cette adresse email est déjà utilisée par un autre compte.';
+    case 'auth/requires-recent-login':
+      return 'Cette opération nécessite une connexion récente. Veuillez vous reconnecter.';
+    case 'auth/popup-closed-by-user':
+      return 'La fenêtre de connexion Google a été fermée. Veuillez réessayer.';
+    case 'auth/popup-blocked':
+      return 'La fenêtre de connexion Google a été bloquée par votre navigateur.';
+    case 'auth/cancelled-popup-request':
+      return 'Connexion Google annulée.';
+    default:
+      return 'Une erreur inattendue s\'est produite. Veuillez réessayer.';
+  }
 }; 
