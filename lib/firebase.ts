@@ -11,7 +11,6 @@ import {
   collection, 
   doc, 
   getDoc, 
-  getDocs 
 } from 'firebase/firestore';
 
 // Function to get the users collection from Firestore

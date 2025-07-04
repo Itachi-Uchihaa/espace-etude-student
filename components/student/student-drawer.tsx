@@ -1,8 +1,9 @@
 import { X, FileText, Download } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
+import { StudentDrawerProps, Subject, Assessment } from '@/lib/types';
 
-export default function StudentDrawer({ student, studentDetails, onClose }: any) {
+export default function StudentDrawer({ student, studentDetails, onClose }: StudentDrawerProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -94,7 +95,7 @@ export default function StudentDrawer({ student, studentDetails, onClose }: any)
             </div>
             <ProgressBar value={studentDetails.overallProgress} />
           </div>
-          {studentDetails.subjects.map((subject: any, idx: number) => (
+          {studentDetails.subjects.map((subject: Subject, idx: number) => (
             <div key={idx} className="mb-4">
               <div className="flex justify-between items-center mb-1">
                 <span className="font-semibold">{subject.name}</span>
@@ -108,7 +109,7 @@ export default function StudentDrawer({ student, studentDetails, onClose }: any)
         {/* Exercise & Assessment Results */}
         <div className="bg-[#f7f6fd] rounded-2xl px-6 py-5 mb-5 mx-4">
           <div className="font-bold text-lg mb-3">Exercise & Assessment Results</div>
-          {studentDetails.assessments.map((assessment: any, idx: number) => (
+          {studentDetails.assessments.map((assessment: Assessment, idx: number) => (
             <div key={idx} className="mb-4">
               <div className="flex justify-between items-center mb-1">
                 <span className="font-semibold">{assessment.subject}

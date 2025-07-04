@@ -3,10 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getUserDoc, onAuthStateChange, signOutUser, signInUser, signInWithGoogle, getUsersCollection } from '@/lib/firebase';
 import { auth, db } from '@/config/firebase';
-import { 
-  createUserWithEmailAndPassword, 
-  updateProfile as updateFirebaseProfile
-} from 'firebase/auth';
+import {  createUserWithEmailAndPassword, updateProfile as updateFirebaseProfil} from 'firebase/auth';
 import { 
   doc, 
   setDoc, 
@@ -15,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { toast } from 'react-toastify';
 import { deleteCookie, setCookie } from 'cookies-next';
+import AnalyticsService from '@/lib/analyticsService';
 
 interface Location {
   latitude: number;
@@ -178,6 +176,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setUser(userData);
       saveUser(userData);
+
+      await AnalyticsService.trackLogin();
       
       router.push('/settings');
     } catch (error: any) {
@@ -244,6 +244,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           setUser(userData);
           saveUser(userData);
+
+          await AnalyticsService.trackLogin();
           
           router.push('/settings');
           return;
@@ -300,6 +302,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       setLoading(true);
+      await AnalyticsService.trackLogout();
       await signOutUser();
       setUser(null);
       saveUser(null);

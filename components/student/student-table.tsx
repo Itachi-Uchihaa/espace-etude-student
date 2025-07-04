@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import StatusBadge from './status-badge';
 import { Search, FileText, Download, Eye } from 'lucide-react';
+import { Student, StudentTableProps } from '@/lib/types';
 
-export default function StudentTable({ students, onViewStudent }: { students: any, onViewStudent: any }) {
+export default function StudentTable({ students, onViewStudent }: StudentTableProps) {
   const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
@@ -70,7 +71,7 @@ export default function StudentTable({ students, onViewStudent }: { students: an
           </thead>
           {/* Table Body */}
           <tbody>
-            {students.map((student:any, idx:any) => (
+            {students.map((student: Student, idx: number) => (
               <tr key={student.id} className={idx % 2 === 1 ? 'bg-gray-50' : ''}>
                 <td className="px-3 py-2 sm:px-4 md:px-5 text-sm font-medium text-gray-900">{student.id}</td>
                 <td className="px-3 py-2 sm:px-4 md:px-5">

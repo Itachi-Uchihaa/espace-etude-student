@@ -4,7 +4,7 @@ import React from "react"
 import Link from "next/link"
 import Image from "next/image"
 
-import { Menu, LogOut, BookOpen, CreditCard, LayoutDashboard, Users, User, Bot, PencilRuler, Trophy, GraduationCap } from "lucide-react"
+import { Menu, LogOut, BookOpen, LayoutDashboard, User, Bot, PencilRuler, Trophy, GraduationCap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"

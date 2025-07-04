@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ImSpinner6 } from 'react-icons/im';
@@ -154,7 +154,7 @@ export function LoginForm({
 				<p className="text-base font-medium text-center text-muted-foreground">
 				  Pas encore de compte ?{' '}
 				  <Link href="/sign-up" className="text-[#7372B7] hover:underline">
-					S'inscrire
+					{"S'inscrire"}
 				  </Link>
 				</p>
 				<div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">

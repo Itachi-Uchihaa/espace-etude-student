@@ -28,7 +28,7 @@ interface FormData {
 }
 
 const ProfileMain = () => {
-	const { currentUser, uid, updateUserPresence, logout, updateUserProfile, changeUserPassword } = useStudentsStore();
+	const { currentUser, updateUserProfile, changeUserPassword } = useStudentsStore();
 	const [formData, setFormData] = useState<FormData>({
 		name: '',
 		email: '',
@@ -132,12 +132,13 @@ const ProfileMain = () => {
 			}
 
 			toast.success('Profile updated successfully');
-		} catch (error: any) {
-			toast.error(error.message || 'Failed to update profile');
+		} catch (error) {
+			console.error('Error updating profile:', error);
+			toast.error(error instanceof Error ? error.message : 'Failed to update profile');
 		}
 	};
 
-	const handleLogout = async () => {
+	/* const handleLogout = async () => {
 		if (uid) {
 			await updateUserPresence({ uid, onlineStatus: false });
 		}
@@ -147,7 +148,7 @@ const ProfileMain = () => {
 		} else {
 			toast.error(result.error || 'Failed to logout');
 		}
-	};
+	}; */
 
 	const handleForgotPassword = () => {
 		console.log('Forgot password clicked');
