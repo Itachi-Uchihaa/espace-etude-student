@@ -70,6 +70,7 @@ export default function ResetForm() {
       }, 1000)
       
     } catch (error) {
+      console.error("Error resetting password:", error)
       setIsLoading(false)
       setError("Une erreur est survenue. Veuillez réessayer.")
     }

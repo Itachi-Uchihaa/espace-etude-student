@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Lock, Mail, User2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { ImSpinner6 } from "react-icons/im";
 import Image from "next/image";
 import Link from "next/link";
@@ -87,6 +87,7 @@ export default function SignUpForm({
       await createUser(email, password, name, location);
       router.push("/login");
     } catch (err) {
+      console.error("Error creating user:", err)
       // L'erreur est déjà gérée dans le contexte d'authentification
     } finally {
       setIsLoading(false);
@@ -128,6 +129,7 @@ export default function SignUpForm({
       await loginWithGoogle({ autoCreate: true });
       router.push("/settings");
     } catch (err) {
+      console.error("Error signing up with Google:", err);
       // L'erreur est déjà gérée dans le contexte d'authentification
     } finally {
       setIsLoading(false);
@@ -269,7 +271,7 @@ export default function SignUpForm({
                   width={16} 
                   height={16} 
                 />
-                S'inscrire avec Google
+                {"S'inscrire avec Google"}
               </Button>
               
               <p className="text-base font-medium text-center text-muted-foreground">
@@ -281,7 +283,7 @@ export default function SignUpForm({
               
               <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
                 <p className="text-sm text-muted-foreground">
-                  Rejoignez notre communauté d'étudiants.
+                  {"Rejoignez notre communauté d'étudiants."}
                 </p>
               </div>
             </div>

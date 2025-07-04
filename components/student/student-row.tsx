@@ -1,7 +1,8 @@
 import StatusBadge from './status-badge';
 import { Eye } from 'lucide-react';
+import {  StudentRowProps } from '@/lib/types';
 
-export default function StudentRow({ student, onViewStudent, isEven }: { student: any, onViewStudent: any, isEven: boolean }) {
+export default function StudentRow({ student, onViewStudent, isEven }: StudentRowProps) {
   return (
     <div className={`grid grid-cols-8 gap-4 items-center px-6 py-3 ${isEven ? 'bg-gray-50' : ''}`}>
       <div className="text-sm font-medium text-gray-900">{student.id}</div>
