@@ -15,56 +15,7 @@ import {
 	EmailAuthProvider, 
 	reauthenticateWithCredential 
 } from 'firebase/auth';
-
-interface Location {
-	latitude: number;
-	longitude: number;
-}
-
-interface Student {
-	id: string;
-	name: string;
-	email: string;
-	createdAt: { toDate: () => Date } | string | Date | null; // Timestamp Firebase
-	updatedAt: { toDate: () => Date } | string | Date | null; // Timestamp Firebase
-	grade?: string;
-	mayenneDeClasse?: number;
-	online?: boolean;
-	profileImage?: string;
-	role: string;
-	status: string;
-	type: string;
-	location?: Location;
-	[key: string]: unknown;
-}
-
-interface StudentsState {
-	studentsData: Student[] | null;
-	currentUser: Student | null;
-	uid: string | null;
-	isLoading: boolean;
-	error: string | null;
-	setStudents: (students: Student[]) => void;
-	setCurrentUser: (user: Student | null) => void;
-	setUid: (uid: string | null) => void;
-	setLoading: (loading: boolean) => void;
-	setError: (error: string | null) => void;
-	getAllStudents: () => (() => void) | undefined;
-	logout: () => Promise<{ success: boolean; error?: string }>;
-	updateUserPresence: (params: { uid: string; onlineStatus: boolean }) => Promise<void>;
-	updateUserProfile: (updates: Partial<{
-		name: string;
-		email: string;
-		grade: string;
-		mayenneDeClasse: string;
-		profileImage: string;
-	}>) => Promise<void>;
-	changeUserPassword: (passwords: {
-		oldPassword: string;
-		newPassword: string;
-		confirmPassword: string;
-	}) => Promise<void>;
-}
+import { StoreStudent, StudentsState } from '@/lib/types';
 
 export const useStudentsStore = create<StudentsState>((set: any, get: any) => ({
 	studentsData: null,
@@ -73,59 +24,11 @@ export const useStudentsStore = create<StudentsState>((set: any, get: any) => ({
 	isLoading: false,
 	error: null,
 
-	setStudents: (students: Student[]) => set({ studentsData: students }),
-	setCurrentUser: (user: Student | null) => set({ currentUser: user }),
+	setStudents: (students: StoreStudent[]) => set({ studentsData: students }),
+	setCurrentUser: (user: StoreStudent | null) => set({ currentUser: user }),
 	setUid: (uid: string | null) => set({ uid }),
 	setLoading: (loading: boolean) => set({ isLoading: loading }),
 	setError: (error: string | null) => set({ error }),
-
-	getAllStudents: () => {
-		try {
-			set({ isLoading: true, error: null });
-			
-			const usersCollection = collection(db, 'users');
-			const q = query(usersCollection, where('role', '==', 'student'));
-			
-			// Set up real-time listener
-			const unsubscribe = onSnapshot(
-				q,
-				(snapshot) => {
-					const studentData = snapshot.docs.map((doc) => {
-						const data = doc.data();
-						return {
-							id: doc.id,
-							name: data.name || '',
-							email: data.email || '',
-							createdAt: data.createdAt, // Garder le timestamp original
-							updatedAt: data.updatedAt, // Garder le timestamp original
-							grade: data.grade || '',
-							mayenneDeClasse: data.mayenneDeClasse || 0,
-							online: data.online || false,
-							profileImage: data.profileImage || '',
-							role: data.role || 'student',
-							status: data.status || 'Pending',
-							type: data.type || 'authWithEmail',
-							location: data.location || null,
-							...data // Pour inclure tous les autres champs
-						};
-					}) as Student[];
-					
-					set({ studentsData: studentData, isLoading: false });
-				},
-				(error: Error) => {
-					console.error('Failed to fetch students:', error);
-					set({ error: error.message, isLoading: false });
-				}
-			);
-			
-			// Return unsubscribe function for cleanup
-			return unsubscribe;
-		} catch (error: any) {
-			console.error('Failed to fetch students:', error);
-			set({ error: error.message, isLoading: false });
-			return undefined;
-		}
-	},
 
 	logout: async () => {
 		try {
