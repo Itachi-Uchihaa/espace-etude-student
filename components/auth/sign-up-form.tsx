@@ -65,14 +65,14 @@ export default function SignUpForm({
       console.error("Error capturing location:", err);
       if (err instanceof GeolocationPositionError) {
         if (err.code === err.PERMISSION_DENIED) {
-          toast.error("La géolocalisation est nécessaire pour créer un compte. Veuillez autoriser l'accès à votre position dans les paramètres de votre navigateur.");
+          toast.error(`Géolocalisation refusée (Code: ${err.code}). Veuillez autoriser l'accès à votre position dans les paramètres de votre navigateur. Message: ${err.message}`);
         } else if (err.code === err.POSITION_UNAVAILABLE) {
-          toast.error("Impossible d'obtenir votre position. Veuillez vérifier votre connexion internet et réessayer.");
+          toast.error(`Position indisponible (Code: ${err.code}). Veuillez vérifier votre connexion internet et réessayer. Message: ${err.message}`);
         } else if (err.code === err.TIMEOUT) {
-          toast.error("La demande de géolocalisation a expiré. Veuillez réessayer.");
+          toast.error(`Timeout de géolocalisation (Code: ${err.code}). Veuillez réessayer. Message: ${err.message}`);
         }
       } else {
-        toast.error("Erreur lors de la géolocalisation. Veuillez autoriser l'accès à votre position et réessayer.");
+        toast.error(`Erreur de géolocalisation: ${err}. Veuillez autoriser l'accès à votre position et réessayer.`);
       }
       return;
     }
@@ -106,14 +106,14 @@ export default function SignUpForm({
       console.error("Error capturing location:", err);
       if (err instanceof GeolocationPositionError) {
         if (err.code === err.PERMISSION_DENIED) {
-          toast.error("La géolocalisation est nécessaire pour créer un compte. Veuillez autoriser l'accès à votre position dans les paramètres de votre navigateur.");
+          toast.error(`Géolocalisation refusée (Code: ${err.code}). Veuillez autoriser l'accès à votre position dans les paramètres de votre navigateur. Message: ${err.message}`);
         } else if (err.code === err.POSITION_UNAVAILABLE) {
-          toast.error("Impossible d'obtenir votre position. Veuillez vérifier votre connexion internet et réessayer.");
+          toast.error(`Position indisponible (Code: ${err.code}). Veuillez vérifier votre connexion internet et réessayer. Message: ${err.message}`);
         } else if (err.code === err.TIMEOUT) {
-          toast.error("La demande de géolocalisation a expiré. Veuillez réessayer.");
+          toast.error(`Timeout de géolocalisation (Code: ${err.code}). Veuillez réessayer. Message: ${err.message}`);
         }
       } else {
-        toast.error("Erreur lors de la géolocalisation. Veuillez autoriser l'accès à votre position et réessayer.");
+        toast.error(`Erreur de géolocalisation: ${err}. Veuillez autoriser l'accès à votre position et réessayer.`);
       }
       return;
     }
