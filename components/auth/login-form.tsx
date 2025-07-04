@@ -12,7 +12,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ImSpinner6 } from 'react-icons/im';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/contexts/auth';
 
 export function LoginForm({
 	className,
