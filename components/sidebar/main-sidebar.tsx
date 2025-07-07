@@ -65,7 +65,7 @@ const navigationBottom = [
 ];
 
 export function MainSidebar() {
-	const { currentUser, uid, updateUserPresence, logout } = useStudentsStore();
+	const { currentUser, logout } = useStudentsStore();
 	const pathname = usePathname();
 	const route = useRouter();
 	const [hasMounted, setHasMounted] = useState(false);
@@ -75,9 +75,6 @@ export function MainSidebar() {
 	}, []);
 
 	const handleLogout = async () => {
-		if(uid){
-			await updateUserPresence({ uid, onlineStatus: false });
-		}
 		const result = await logout();
 		if (result.success) {
 			route.push('/login');
@@ -86,12 +83,6 @@ export function MainSidebar() {
 			toast.error('Failed to logout');
 		}
 	};
-
-	useEffect(() => {
-		if (uid) {
-		updateUserPresence({ uid, onlineStatus: true });
-		}
-	}, [uid, updateUserPresence]);
 
 	if (!hasMounted) return null;
 

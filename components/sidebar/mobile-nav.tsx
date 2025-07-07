@@ -55,12 +55,9 @@ export function MobileNav({ className, ...props }: React.HTMLAttributes<HTMLDivE
   const [open, setOpen] = React.useState(false)
   const [activeItem, setActiveItem] = React.useState("Dashboard")
   const route = useRouter();
-  const { currentUser, uid, logout, updateUserPresence } = useStudentsStore();
+  const { currentUser, logout } = useStudentsStore();
 
   const handleLogout = async () => {
-    if (uid) {
-      await updateUserPresence({ uid, onlineStatus: false });
-    }
     const result = await logout();
     if (result.success) {
       setOpen(false);

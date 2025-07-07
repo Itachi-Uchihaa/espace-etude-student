@@ -30,9 +30,6 @@ export default function ForgotForm() {
     e.preventDefault()
     setIsLoading(true)
 
-    // TODO: Intégrer Firebase Password Reset
-    console.log("Password reset for:", email)
-
     // Simuler l'envoi
     setTimeout(() => {
       setIsLoading(false)

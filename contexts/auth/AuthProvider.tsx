@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { signOutUser } from '@/lib/firebase';
 import { auth, db } from '@/config/firebase';
@@ -37,10 +37,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [authListenerEnabled, setAuthListenerEnabled] = useState(true);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!authListenerEnabled) {
+      console.log('AuthStateListener temporairement désactivé');
+      return;
+    }
+
+    console.log('Activation de l\'AuthStateListener');
     const unsubscribe = createAuthStateListener(
       setUser,
       setLoading,
@@ -48,6 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       pathname,
       isLoggingIn
     );
+
+    unsubscribeRef.current = unsubscribe;
 
     // Gestionnaire pour détecter la fermeture du navigateur/onglet
     const handleBeforeUnload = createBeforeUnloadHandler(user);
@@ -61,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [router, isLoggingIn, pathname, user]);
+  }, [router, isLoggingIn, pathname, user, authListenerEnabled]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -96,8 +106,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoggingIn(true);
       setLoading(true);
       
-      await handleSignUpWithGoogle(location, setUser, saveUser, router);
+      // Désactiver temporairement l'authStateListener
+      console.log('Désactivation temporaire de l\'AuthStateListener pour l\'inscription Google');
+      setAuthListenerEnabled(false);
+      
+      // Nettoyer l'écouteur actuel s'il existe
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+      
+      await handleSignUpWithGoogle(location, router, setLoading);
+      
+      // Réactiver l'authStateListener après l'inscription
+      console.log('Réactivation de l\'AuthStateListener après inscription Google');
+      setAuthListenerEnabled(true);
+      
     } catch (error: any) {
+      // Réactiver l'authStateListener même en cas d'erreur
+      console.log('Réactivation de l\'AuthStateListener après erreur d\'inscription Google');
+      setAuthListenerEnabled(true);
       handleGoogleSignUpError(error);
     } finally {
       setLoading(false);
@@ -110,29 +138,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       console.log('Début de la déconnexion pour:', user?.id);
       
-      // Nettoyer la présence et le statut offline AVANT de déconnecter
+      // Nettoyer la présence dans Realtime Database
       if (user && auth.currentUser) {
         try {
-          console.log('Mise à jour du statut offline en cours...');
+          console.log('Nettoyage de la présence...');
           
           // Nettoyer la présence dans Realtime Database
           await cleanupUserPresence(user.id);
-          console.log('Présence Realtime DB nettoyée');
-          
-          // Mettre à jour Firestore
-          const userRef = doc(db, 'users', user.id);
-          await updateDoc(userRef, {
-            online: false,
-            updatedAt: serverTimestamp(),
-          });
-          console.log('Statut Firestore mis à jour: online = false');
-          
-          // Petit délai pour s'assurer que la mise à jour est propagée
-          await new Promise(resolve => setTimeout(resolve, 500));
-          console.log('Délai de 500ms écoulé');
+          console.log('Présence nettoyée');
           
         } catch (error) {
-          console.error('Erreur lors de la mise à jour du statut offline:', error);
+          console.error('Erreur lors du nettoyage de la présence:', error);
         }
       } else {
         console.log('Utilisateur non trouvé ou non connecté');
@@ -196,6 +212,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   };
+
+  // Nettoyer le heartbeat lors du démontage du composant
+  useEffect(() => {
+    return () => {
+      // stopHeartbeat(); // This line is removed as per the edit hint
+    };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, signUpWithGoogle, logout, createUser, updateUserProfile }}>

@@ -43,20 +43,6 @@ export const useStudentsStore = create<StudentsState>((set: any, get: any) => ({
 		}
 	},
 
-	updateUserPresence: async ({ uid, onlineStatus }) => {
-		try {
-			const userRef = doc(db, 'users', uid);
-			
-			await updateDoc(userRef, {
-				online: onlineStatus,
-				lastSeen: serverTimestamp(),
-			});
-		} catch (error: any) {
-			console.error('Failed to update user presence:', error);
-			set({ error: error.message });
-		}
-	},
-
 	updateUserProfile: async (updates) => {
 		const { uid } = get();
 		if (!uid) return;
