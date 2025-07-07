@@ -6,13 +6,13 @@ export const setupUserPresence = async (userId: string) => {
     const rtdb = getDatabase();
     const presenceRef = ref(rtdb, `presence/${userId}`);
     
-    // Mettre en ligne l'utilisateur
+    // Mettre en ligne l'utilisateur dans Realtime Database
     await set(presenceRef, {
       online: true,
       lastSeen: rtdbServerTimestamp()
     });
     
-    // Configurer la déconnexion automatique
+    // Configurer la déconnexion automatique dans Realtime Database
     await onDisconnect(presenceRef).set({
       online: false,
       lastSeen: rtdbServerTimestamp()
@@ -27,12 +27,14 @@ export const setupUserPresence = async (userId: string) => {
 // Fonction pour nettoyer la présence
 export const cleanupUserPresence = async (userId: string) => {
   try {
+    // Nettoyer Realtime Database
     const rtdb = getDatabase();
     const presenceRef = ref(rtdb, `presence/${userId}`);
     await set(presenceRef, {
       online: false,
       lastSeen: rtdbServerTimestamp()
     });
+    
     console.log('Présence nettoyée pour:', userId);
   } catch (error) {
     console.error('Erreur lors du nettoyage de la présence:', error);

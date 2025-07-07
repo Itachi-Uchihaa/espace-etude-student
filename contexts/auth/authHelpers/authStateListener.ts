@@ -30,14 +30,13 @@ export const createAuthStateListener = (
           setUser(userData);
           saveUser(userData);
           
-          // Mettre à jour le statut en ligne dans Firestore
+          // Mettre à jour updatedAt dans Firestore
           const userRef = doc(db, 'users', firebaseUser.uid);
           await updateDoc(userRef, {
-            online: true,
             updatedAt: serverTimestamp(),
           });
           
-          // Configurer le système de présence
+          // Configurer le système de présence (Realtime Database seulement)
           await setupUserPresence(firebaseUser.uid);
           
           if (pathname === '/login' || pathname === '/forgot-password' || pathname === '/reset-password' || pathname === '/') {
@@ -55,9 +54,8 @@ export const createAuthStateListener = (
         await signOutUser();
       }
     } else {
-      // Utilisateur déconnecté - Mettre à jour le statut offline
-      // Note: user sera passé via closure, nous devons le gérer différemment
-      console.log('Utilisateur déconnecté, mise à jour du statut offline...');
+      // Utilisateur déconnecté
+      console.log('Utilisateur déconnecté...');
       
       setUser(null);
       saveUser(null);

@@ -115,7 +115,6 @@ export interface StudentsState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   logout: () => Promise<{ success: boolean; error?: string }>;
-  updateUserPresence: (params: { uid: string; onlineStatus: boolean }) => Promise<void>;
   updateUserProfile: (updates: Partial<{
     name: string;
     email: string;
