@@ -61,7 +61,7 @@ export const createAuthStateListener = (
       
       setUser(null);
       saveUser(null);
-      if (!isLoggingIn && pathname !== '/login' && pathname !== '/forgot-password' && pathname !== '/reset-password' && pathname !== '/' && pathname !== '/sign-up' && pathname !== '/avatar') {
+      if (!isLoggingIn && pathname !== '/login' && pathname !== '/forgot-password' && pathname !== '/reset-password' && pathname !== '/' && pathname !== '/sign-up' && pathname !== '/avatar' && pathname !== '/verify-email') {
         router.push('/login');
       }
     }

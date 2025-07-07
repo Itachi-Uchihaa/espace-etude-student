@@ -85,7 +85,7 @@ export default function SignUpForm({
     setIsLoading(true);
     try {
       await createUser(email, password, name, location);
-      router.push("/login");
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       console.error("Error creating user:", err)
       // L'erreur est déjà gérée dans le contexte d'authentification

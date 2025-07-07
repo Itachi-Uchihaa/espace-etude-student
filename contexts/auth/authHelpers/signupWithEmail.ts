@@ -1,4 +1,4 @@
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { signOutUser } from '@/lib/firebase';
 import { auth, db } from '@/config/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -28,7 +28,7 @@ export const handleSignUpWithEmail = async (
     }
 
     console.log('Utilisateur créé dans Firebase Auth:', firebaseUser.uid);
-
+    await sendEmailVerification(firebaseUser);
     // Étape 2: Créer le document dans Firestore
     const userRef = doc(db, 'users', firebaseUser.uid);
     const userDoc = {
@@ -79,7 +79,7 @@ export const handleSignUpWithEmail = async (
     }
 
     // Sign out the user after creating account so they can log in properly
-    await signOutUser();
+    // await signOutUser();
     
     toast.success('Compte créé avec succès ! Veuillez vous connecter.');
     console.log('Création d\'utilisateur terminée avec succès');
