@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { toast } from "react-toastify"
 import { useStudentsStore } from "@/store/studentStore"
+import { logout, updateUserPresence } from "@/store/user/userThunk"
+import { useAppDispatch, useAppSelector } from "@/store/store"
 
 const navigation = [
 	{
@@ -52,17 +54,19 @@ const navigation = [
 ];
 
 export function MobileNav({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  const dispatch = useAppDispatch();
+  const { user, uid } = useAppSelector((state) => state.user);
   const [open, setOpen] = React.useState(false)
   const [activeItem, setActiveItem] = React.useState("Dashboard")
   const route = useRouter();
-  const { currentUser, uid, logout, updateUserPresence } = useStudentsStore();
+  // const { currentUser, uid, logout, updateUserPresence } = useStudentsStore();
 
   const handleLogout = async () => {
     if (uid) {
       await updateUserPresence({ uid, onlineStatus: false });
     }
-    const result = await logout();
-    if (result.success) {
+    const result = await dispatch(logout());
+    if (logout.fulfilled.match(result)) {
       setOpen(false);
       route.push('/login');
       toast.success('Logged out successfully');
@@ -122,8 +126,8 @@ export function MobileNav({ className, ...props }: React.HTMLAttributes<HTMLDivE
                     <AvatarFallback>CN</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium text-[#324054]">{currentUser?.name}</span>
-                    <span className="text-xs text-[#71839B]">{currentUser?.email}</span>
+                    <span className="text-sm font-medium text-[#324054]">{user?.name}</span>
+                    <span className="text-xs text-[#71839B]">{user?.email}</span>
                   </div>
                 </div>
                 <button

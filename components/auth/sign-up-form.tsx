@@ -12,13 +12,16 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import { useAuth } from "@/contexts/auth";
 import { useRouter } from "next/navigation";
+import { createUser, loginWithGoogle } from "@/store/user/userThunk";
+import { useAppDispatch } from "@/store/store";
 
 export default function SignUpForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const { createUser, signUpWithGoogle } = useAuth();
+  // const { createUser, signUpWithGoogle } = useAuth();
   const router = useRouter();
+  const dispatch =  useAppDispatch();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -84,7 +87,8 @@ export default function SignUpForm({
 
     setIsLoading(true);
     try {
-      await createUser(email, password, name, location);
+      // await createUser(email, password, name, location);
+      await dispatch(createUser({ email, password, name, location })).unwrap();
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       console.error("Error creating user:", err)
@@ -126,7 +130,8 @@ export default function SignUpForm({
 
     setIsLoading(true);
     try {
-      await signUpWithGoogle(location);
+      // await signUpWithGoogle(location);
+      await dispatch(loginWithGoogle({ location })).unwrap();
       router.push("/settings");
     } catch (err) {
       console.error("Error signing up with Google:", err);

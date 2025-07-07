@@ -13,17 +13,22 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ImSpinner6 } from 'react-icons/im';
 import { useAuth } from '@/contexts/auth';
+import { loginUser, loginWithGoogle } from '@/store/user/userThunk';
+import { useAppDispatch } from '@/store/store';
+import { toast } from 'react-toastify';
 
 export function LoginForm({
 	className,
 	...props
 }: React.ComponentProps<'div'>) {
-	const { login, loginWithGoogle, loading: authLoading } = useAuth();
+	const dispatch = useAppDispatch();
+	// const { login, loginWithGoogle, loading: authLoading } = useAuth();
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [isDesktop, setIsDesktop] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
 	const router = useRouter();
+	const [isLoading, setIsLoading] = useState(false);
 
 	useEffect(() => {
 		const checkScreenSize = () => {
@@ -36,19 +41,66 @@ export function LoginForm({
 		return () => window.removeEventListener('resize', checkScreenSize);
 	}, []);
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		try {
-			await login(email, password);
-			router.push('/settings');
-		} catch (error) {
-			console.error('Erreur de connexion:', error);
+	 const getLocation = () => {
+		return new Promise<GeolocationPosition>((resolve, reject) => {
+		if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(resolve, reject);
+		} else {
+			reject("Geolocation not supported");
 		}
+		});
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		// e.preventDefault();
+		// try {
+		// 	await login(email, password);
+		// 	router.push('/settings');
+		// } catch (error) {
+		// 	console.error('Erreur de connexion:', error);
+		// }
+		e.preventDefault();
+		setIsLoading(true);
+		const result = await dispatch(loginUser({ email, password }));
+		if (loginUser.fulfilled.match(result)) {
+			router.push('/settings');
+		} else {
+			console.error(result.payload); // error message
+		}
+		setIsLoading(false);
 	};
 
 	const handleGoogleLogin = async () => {
+		let location = { latitude: 0, longitude: 0 };
 		try {
-			await loginWithGoogle({ autoCreate: false});
+			  const position = await getLocation();
+			  location = {
+				latitude: position.coords.latitude,
+				longitude: position.coords.longitude,
+			  };
+			} catch (err) {
+			  console.error("Error capturing location:", err);
+			  if (err instanceof GeolocationPositionError) {
+				if (err.code === err.PERMISSION_DENIED) {
+				  toast.error(`Géolocalisation refusée (Code: ${err.code}). Veuillez autoriser l'accès à votre position dans les paramètres de votre navigateur. Message: ${err.message}`);
+				} else if (err.code === err.POSITION_UNAVAILABLE) {
+				  toast.error(`Position indisponible (Code: ${err.code}). Veuillez vérifier votre connexion internet et réessayer. Message: ${err.message}`);
+				} else if (err.code === err.TIMEOUT) {
+				  toast.error(`Timeout de géolocalisation (Code: ${err.code}). Veuillez réessayer. Message: ${err.message}`);
+				}
+			  } else {
+				toast.error(`Erreur de géolocalisation: ${err}. Veuillez autoriser l'accès à votre position et réessayer.`);
+			  }
+			  return;
+			}
+			
+			if (!location.latitude || !location.longitude) {
+			  toast.error("Veuillez activer votre géolocalisation pour vous inscrire sur la plateforme.");
+			  return;
+			}
+		try {
+			// await loginWithGoogle({ autoCreate: false});
+			await dispatch(loginWithGoogle({ location })).unwrap();
 			router.push('/settings');
 		} catch (error) {
 			console.error('Erreur de connexion Google:', error);
@@ -116,9 +168,9 @@ export function LoginForm({
 				<Button 
 				  type="submit" 
 				  className="w-full text-white" 
-				  disabled={authLoading}
+				  disabled={isLoading}
 				>
-				  {authLoading ? (
+				  {isLoading ? (
 					<ImSpinner6 className="text-white animate-spin" />
 				  ) : (
 					"Connexion"
@@ -141,7 +193,7 @@ export function LoginForm({
 				  type="button" 
 				  className="w-full"
 				  onClick={handleGoogleLogin}
-				  disabled={authLoading}
+				  disabled={isLoading}
 				>
 				  <Image 
 					src="/images/google.png" 

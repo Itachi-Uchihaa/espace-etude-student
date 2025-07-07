@@ -17,6 +17,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import Image from 'next/image';
 import { useStudentsStore } from '@/store/studentStore';
 import { toast } from 'react-toastify';
+import { useAppDispatch, useAppSelector } from '@/store/store';
+import { logout, updateUserPresence } from '@/store/user/userThunk';
 
 
 const navigation = [
@@ -65,7 +67,9 @@ const navigationBottom = [
 ];
 
 export function MainSidebar() {
-	const { currentUser, uid, updateUserPresence, logout } = useStudentsStore();
+	const dispatch = useAppDispatch();
+	const { uid, user } = useAppSelector(state => state.user);
+	// const { currentUser, uid, updateUserPresence, logout } = useStudentsStore();
 	const pathname = usePathname();
 	const route = useRouter();
 	const [hasMounted, setHasMounted] = useState(false);
@@ -76,10 +80,10 @@ export function MainSidebar() {
 
 	const handleLogout = async () => {
 		if(uid){
-			await updateUserPresence({ uid, onlineStatus: false });
+			await dispatch(updateUserPresence({ uid, onlineStatus: false }));
 		}
-		const result = await logout();
-		if (result.success) {
+		const result = await dispatch(logout());
+		if (logout.fulfilled.match(result)) {
 			route.push('/login');
 			toast.success('Logged out successfully');
 		} else {
@@ -89,9 +93,9 @@ export function MainSidebar() {
 
 	useEffect(() => {
 		if (uid) {
-		updateUserPresence({ uid, onlineStatus: true });
+		dispatch(updateUserPresence({ uid, onlineStatus: true }));
 		}
-	}, [uid, updateUserPresence]);
+	}, [uid, dispatch]);
 
 	if (!hasMounted) return null;
 
@@ -158,17 +162,17 @@ export function MainSidebar() {
 					<div className='flex items-center gap-4'>
 						<Avatar>
 							<AvatarImage
-								src={currentUser?.profileImage || '/images/picture.png'}
+								src={user?.profileImage || '/images/picture.png'}
 								alt='Avatar'
 							/>
 							<AvatarFallback>CN</AvatarFallback>
 						</Avatar>
 						<div className='flex flex-col'>
 							<span className='text-sm font-medium text-[#324054]'>
-								{currentUser?.name}
+								{user?.name}
 							</span>
 							<span className='text-xs text-[#71839B]'>
-								{currentUser?.email}
+								{user?.email}
 							</span>
 						</div>
 					</div>

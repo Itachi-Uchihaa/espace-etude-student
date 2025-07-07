@@ -16,6 +16,8 @@ import Image from 'next/image';
 import { useStudentsStore } from '@/store/studentStore';
 import { uploadFile } from "@/lib/function";
 import { toast } from 'react-toastify';
+import { useAppDispatch, useAppSelector } from '@/store/store';
+import { changeUserPassword, updateUserProfile } from '@/store/user/userThunk';
 
 interface FormData {
 	name: string;
@@ -28,7 +30,9 @@ interface FormData {
 }
 
 const ProfileMain = () => {
-	const { currentUser, updateUserProfile, changeUserPassword } = useStudentsStore();
+	const dispatch = useAppDispatch();
+	const { currentUser,  } = useStudentsStore();
+	const { user } = useAppSelector(state => state.user);
 	const [formData, setFormData] = useState<FormData>({
 		name: '',
 		email: '',
@@ -41,18 +45,18 @@ const ProfileMain = () => {
 	const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (currentUser) {
+		if (user) {
 			setFormData(prev => ({
 				...prev,
-				name: currentUser.name ?? prev.name,
-				email: currentUser.email ?? prev.email,
+				name: user.name ?? prev.name,
+				email: user.email ?? prev.email,
 				currentGradeLevel:
-					currentUser.grade ?? prev.currentGradeLevel,
-				mayenneDeClasse: currentUser.mayenneDeClasse?.toString() ?? prev.mayenneDeClasse,
+					user.grade ?? prev.currentGradeLevel,
+				mayenneDeClasse: user.mayenneDeClasse ?? prev.mayenneDeClasse,
 			}));
-			setSelectedImage(currentUser?.profileImage ?? null);
+			setSelectedImage(user?.profileImage ?? null);
 		}
-	}, [currentUser]);
+	}, [user]);
 
 	const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
@@ -65,8 +69,7 @@ const ProfileMain = () => {
 				if (downloadURL) {
 					setSelectedImage(downloadURL as string);
 					// Mettre à jour l'image de profil dans le store
-					await updateUserProfile({ profileImage: downloadURL as string });
-					toast.success('Profile image updated successfully');
+					await dispatch(updateUserProfile({ profileImage: downloadURL as string }));
 				}
 			} catch (error) {
 				console.error('Error uploading image:', error);
@@ -108,30 +111,24 @@ const ProfileMain = () => {
 
 		try {
 			// 1. Toujours mettre à jour le profil
-			await updateUserProfile({
+			await dispatch(updateUserProfile({
 				name,
 				email,
 				grade: currentGradeLevel,
 				mayenneDeClasse,
-			});
+			}));
 
 			// 2. Conditionnellement changer le mot de passe
 			const allPasswordsFilled =
 				oldPassword.trim() && newPassword.trim() && confirmPassword.trim();
 			if (allPasswordsFilled) {
-				if (newPassword !== confirmPassword) {
-					toast.error('New passwords do not match');
-					return;
-				}
-				await changeUserPassword({
-					oldPassword,
-					newPassword,
-					confirmPassword,
-				});
-				toast.success('Password changed successfully');
+				dispatch(
+					changeUserPassword({
+						oldPassword,
+						newPassword,
+						confirmPassword,
+					}));
 			}
-
-			toast.success('Profile updated successfully');
 		} catch (error) {
 			console.error('Error updating profile:', error);
 			toast.error(error instanceof Error ? error.message : 'Failed to update profile');
