@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Plus, Sparkles } from 'lucide-react';
 import LoginAvatar from '@/components/avatar/login-avatar';
 import CreateAvatar from '@/components/avatar/create-avatar';
+import { useAppDispatch, useAppSelector } from '@/store/store';
+import { fetchChildProfiles } from '@/store/user/userThunk';
 
 // Données d'exemple pour les avatars existants
 const existingAvatars = [
@@ -34,17 +36,24 @@ const existingAvatars = [
 
 // Avatars disponibles pour la création
 const availableAvatars = [
-	'avatar1.png',
-	'avatar2.png',
-	'avatar3.png',
-	'avatar4.png',
-	'avatar5.png',
-	'avatar6.png'
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Leo',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Ruby',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Tiger',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Pixel',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Maya',
+  'https://api.dicebear.com/7.x/adventurer/png?seed=Niko',
 ];
 
 export default function AvatarPage() {
+	const dispatch=  useAppDispatch();
+	const { uid, avatars } = useAppSelector(state => state.user);
 	const [activeMode, setActiveMode] = useState<'login' | 'create'>('login');
 
+	useEffect(() => {
+	if (uid) {
+		dispatch(fetchChildProfiles(uid));
+	}
+	}, [uid, dispatch]);
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
 			<div className="w-full max-w-2xl">
@@ -97,13 +106,13 @@ export default function AvatarPage() {
 						<div className="transition-all duration-300">
 							{activeMode === 'login' && (
 								<div className="animate-fade-in">
-									<LoginAvatar existingAvatars={existingAvatars} />
+									<LoginAvatar existingAvatars={avatars} />
 								</div>
 							)}
 							
 							{activeMode === 'create' && (
 								<div className="animate-fade-in">
-									<CreateAvatar availableAvatars={availableAvatars} />
+									<CreateAvatar availableAvatars={availableAvatars} setActiveMode={setActiveMode} />
 								</div>
 							)}
 						</div>

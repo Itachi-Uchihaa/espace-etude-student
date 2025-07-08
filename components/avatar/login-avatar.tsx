@@ -7,13 +7,19 @@ import { Label } from '@/components/ui/label';
 import { Check, Eye, EyeOff, HelpCircle, Key, ArrowRight, Edit3, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import bcrypt from 'bcryptjs';
 
 interface Avatar {
-	id: number;
-	name: string;
+	// id: number;
+	// name: string;
+	// avatar: string;
+	// pin: string;
+	// email: string;
+	id: string;
+	firstName: string;
+	lastName: string;
 	avatar: string;
 	pin: string;
-	email: string;
 }
 
 interface LoginAvatarProps {
@@ -43,31 +49,32 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 	}, [selectedAvatar]);
 
 	const handleAvatarLogin = async () => {
-		if (!selectedAvatar || pinCode.length !== 4) return;
-
+	if (!selectedAvatar || pinCode.length !== 4) return;
 		setIsLoading(true);
 		setErrorMessage('');
-		
-		// Simulation d'un appel API
-		setTimeout(() => {
-			if (selectedAvatar.pin === pinCode) {
+		try {
+			// 🔒 Secure PIN comparison
+			const isMatch = await bcrypt.compare(pinCode, selectedAvatar.pin);
+			if (isMatch) {
 				setIsSuccess(true);
-				console.log('Connexion réussie pour:', selectedAvatar.name);
-				
+				console.log('Connexion réussie pour:', selectedAvatar.firstName);
 				// Success animation before redirect
 				setTimeout(() => {
-					router.push('/dashboard');
+					router.push('/settings');
 				}, 800);
 			} else {
 				setErrorMessage('Incorrect PIN code. Please try again.');
-				// Animation d'erreur
 				const pinInput = document.getElementById('pin-input');
 				pinInput?.classList.add('animate-shake');
 				setTimeout(() => pinInput?.classList.remove('animate-shake'), 500);
 				setPinCode('');
 			}
+		} catch (error) {
+			console.error('PIN verification error:', error);
+			setErrorMessage('Something went wrong. Please try again.');
+		} finally {
 			setIsLoading(false);
-		}, 1000);
+		}
 	};
 
 	const handlePinInput = (value: string) => {
@@ -96,8 +103,8 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 								<div className="relative">
 									<div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden ring-3 sm:ring-4 ring-emerald-100 shadow-lg">
 										<Image
-											src={`/avatar/${selectedAvatar.avatar}`}
-											alt={selectedAvatar.name}
+											src={selectedAvatar.avatar}
+											alt={selectedAvatar.firstName}
 											width={80}
 											height={80}
 											className="w-full h-full object-cover"
@@ -112,7 +119,7 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 								<div className="flex-1">
 									<div className="flex items-center justify-between mb-1 sm:mb-2">
 										<h3 className="text-lg sm:text-xl font-semibold text-slate-900">
-											{selectedAvatar.name}
+											{selectedAvatar.firstName}
 										</h3>
 										<Button
 											variant="ghost"
@@ -133,6 +140,8 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 				{/* Sélection d'avatar moderne avec animations */}
 				{!selectedAvatar && (
 					<div className="mb-6 sm:mb-8 animate-fade-in">
+					{existingAvatars.length > 0 ? (
+					<>
 						<h2 className="text-slate-900 font-semibold mb-4 sm:mb-6 text-center text-xs sm:text-sm">Select Your Avatar</h2>
 						<div className="grid grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
 							{existingAvatars.map((avatar, index) => (
@@ -144,8 +153,8 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 								>
 									<div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden ring-2 sm:ring-3 ring-slate-200 group-hover:ring-emerald-300 shadow-lg group-hover:shadow-xl transition-all duration-300">
 										<Image
-											src={`/avatar/${avatar.avatar}`}
-											alt={avatar.name}
+											src={avatar.avatar}
+											alt={avatar.firstName}
 											width={80}
 											height={80}
 											className="w-full h-full object-cover transition-all duration-300 group-hover:brightness-110 group-hover:scale-110"
@@ -154,12 +163,18 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 									<div className="absolute inset-0 rounded-xl sm:rounded-2xl bg-gradient-to-br from-transparent via-transparent to-black/5 group-hover:from-emerald-500/10 group-hover:to-emerald-600/10 transition-all duration-300" />
 									<div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300">
 										<div className="bg-slate-900 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap">
-											{avatar.name}
+											{avatar.firstName}
 										</div>
 									</div>
 								</button>
 							))}
 						</div>
+								</>
+								) : (
+								<p className="text-center text-slate-500 text-sm">
+									No avatar created yet.
+								</p>
+								)}
 					</div>
 				)}
 

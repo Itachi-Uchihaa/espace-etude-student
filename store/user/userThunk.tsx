@@ -12,13 +12,19 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/config/firebase';
 import {
+	addDoc,
+	collection,
 	doc,
 	getDoc,
+	getDocs,
+	onSnapshot,
 	serverTimestamp,
 	setDoc,
 	updateDoc,
 } from 'firebase/firestore';
 import { toast } from 'react-toastify';
+import bcrypt from 'bcryptjs';
+import { setChildProfiles } from './userSlice';
 
 export const createUser = createAsyncThunk<any, any>(
 	'user/createUser',
@@ -312,3 +318,52 @@ export const saveUserPlan = createAsyncThunk<any, any>(
 		}
 	}
 );
+
+export const createChildProfileThunk = createAsyncThunk<any, any>(
+	'user/createChildProfile',
+	async ({ uid, firstName, lastName, avatar, pin }, { rejectWithValue }) => {
+		try {
+			if (!uid) throw new Error('UID manquant.');
+			const userRef = doc(db, 'users', uid);
+			const profilesRef = collection(db, 'users', uid, 'profiles');
+			const existingProfilesSnap = await getDocs(profilesRef);
+			const existingCount = existingProfilesSnap.size;
+			const userDocSnap = await getDoc(userRef);
+			const userData = userDocSnap.exists() ? userDocSnap.data() : null;
+			const allowedChildren = Number(userData?.plan?.children || 0);
+			if (existingCount >= allowedChildren) {
+				const message = `Limite atteinte : votre plan autorise seulement ${allowedChildren} profil(s).`;
+				toast.error(message);
+				return rejectWithValue(message);
+			}
+			const hashedPin = await bcrypt.hash(pin, 10);
+			await addDoc(profilesRef, {
+				firstName,
+				lastName,
+				avatar,
+				pin: hashedPin,
+				createdAt: new Date(),
+			});
+			return { success: true };
+		} catch (error: any) {
+			console.error('[CREATE_CHILD_PROFILE_ERROR]', error.message);
+			return rejectWithValue(error.message);
+		}
+	}
+);
+
+export const fetchChildProfiles = (uid: any) => async (dispatch: any) => {
+	try {
+		const profilesRef = collection(db, 'users', uid, 'profiles');
+		onSnapshot(profilesRef, (snapshot: any) => {
+			const profiles = snapshot.docs.map((doc: any) => ({
+				id: doc.id,
+				...doc.data(),
+			}));
+
+			dispatch(setChildProfiles(profiles));
+		});
+	} catch (error: any) {
+		console.error('[FETCH_CHILD_PROFILES_ERROR]', error.message);
+	}
+};

@@ -7,12 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Upload, Check, Eye, EyeOff, Key, Sparkles, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useAppDispatch, useAppSelector } from '@/store/store';
+import { createChildProfileThunk } from '@/store/user/userThunk';
+import { uploadFile } from '@/lib/function';
 
 interface CreateAvatarProps {
 	availableAvatars: string[];
-}
+  	setActiveMode: (mode: 'login' | 'create') => void;}
 
-const CreateAvatar: React.FC<CreateAvatarProps> = ({ availableAvatars }) => {
+const CreateAvatar: React.FC<CreateAvatarProps> = ({ availableAvatars, setActiveMode }) => {
+	const { uid } = useAppSelector(state => state.user);
 	const [firstName, setFirstName] = useState<string>('');
 	const [lastName, setLastName] = useState<string>('');
 	const [newPinCode, setNewPinCode] = useState<string>('');
@@ -24,6 +28,7 @@ const CreateAvatar: React.FC<CreateAvatarProps> = ({ availableAvatars }) => {
 	const [errorMessage, setErrorMessage] = useState<string>('');
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const router = useRouter();
+	const dispatch = useAppDispatch();
 
 	// Auto-focus first name input on mount
 	useEffect(() => {
@@ -31,16 +36,22 @@ const CreateAvatar: React.FC<CreateAvatarProps> = ({ availableAvatars }) => {
 		firstNameInput?.focus();
 	}, []);
 
-	const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.[0];
-		if (file) {
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				setUploadedImage(e.target?.result as string);
-				setSelectedAvatar(null); // Désélectionner l'avatar prédéfini
-				setErrorMessage(''); // Clear any error messages
-			};
-			reader.readAsDataURL(file);
+	const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		try {
+			const storagePath = `avatarImages/${Date.now()}_${file.name}`;
+			const downloadURL = await uploadFile(file, storagePath, (progress: number) => {
+				console.log(`Upload progress: ${progress}%`);
+			});
+			if (downloadURL) {
+				setUploadedImage(downloadURL as string);
+				setSelectedAvatar(null);
+				setErrorMessage('');
+			}
+		} catch (error) {
+			console.error('Error uploading image:', error);
+			setErrorMessage('Erreur lors de l’upload de l’image');
 		}
 	};
 
@@ -71,23 +82,15 @@ const CreateAvatar: React.FC<CreateAvatarProps> = ({ availableAvatars }) => {
 		setErrorMessage('');
 		
 		try {
-			// TODO: Appel API pour créer l'avatar
-			console.log('Création de l\'avatar...', {
+			await dispatch(createChildProfileThunk({
+				uid,
 				firstName,
 				lastName,
 				avatar: uploadedImage || selectedAvatar,
-				pinCode: newPinCode
-			});
-			
-			// Simulation d'un délai
-			await new Promise(resolve => setTimeout(resolve, 1500));
-			
-			setIsSuccess(true);
-			
-			// Success animation before redirect
-			setTimeout(() => {
-				router.push('/dashboard');
-			}, 1000);
+				pin: newPinCode,
+			})
+		).unwrap();
+		setIsSuccess(true);
 		} catch (error) {
 			console.error('Erreur lors de la création:', error);
 			setErrorMessage('Erreur lors de la création de l\'avatar');
@@ -103,6 +106,15 @@ const CreateAvatar: React.FC<CreateAvatarProps> = ({ availableAvatars }) => {
 			setErrorMessage(''); // Clear error when user starts typing
 		}
 	};
+
+	useEffect(() => {
+		if (isSuccess) {
+			const timeout = setTimeout(() => {
+				setActiveMode('login');
+			}, 500);
+			return () => clearTimeout(timeout);
+		}
+	}, [isSuccess, setActiveMode]);
 
 	return (
 		<div className="flex items-center justify-center p-2 sm:p-4">
@@ -231,7 +243,7 @@ const CreateAvatar: React.FC<CreateAvatarProps> = ({ availableAvatars }) => {
 									style={{ animationDelay: `${index * 30}ms` }}
 								>
 									<Image
-										src={`/avatar/${avatar}`}
+										src={avatar}
 										alt={avatar}
 										width={48}
 										height={48}
