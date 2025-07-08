@@ -300,3 +300,15 @@ export const updateUserPresence = createAsyncThunk<any, any>(
 		}
 	}
 );
+
+export const saveUserPlan = createAsyncThunk<any, any>(
+	'user/saveUserPlan',
+	async ({ uid, plan }, { rejectWithValue }) => {
+		try {
+			await setDoc(doc(db, 'users', uid), { plan }, { merge: true });
+		} catch (error: any) {
+			console.error('[SAVE_USER_PLAN_ERROR]', error.message);
+			return rejectWithValue(error.message);
+		}
+	}
+);

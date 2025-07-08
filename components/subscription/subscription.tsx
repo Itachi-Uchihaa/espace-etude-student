@@ -6,15 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Star, Users, Zap, Crown, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { Elements } from '@stripe/react-stripe-js';
+import PaymentModal from './PaymentModal';
+import { stripePromise } from '@/lib/stripe';
 
 const Subscription = () => {
 	const [loading, setLoading] = useState<string | null>(null);
+	const [selectedPlan, setSelectedPlan] = useState<any>(null);
+	const [openModal, setOpenModal] = useState(false);
 
 	const packages = [
 		{
 			id: 'essentiel',
 			name: 'Essentiel',
 			price: '19,99 €',
+			amount: 1999,
 			period: '/mois',
 			children: 1,
 			avatars: 1,
@@ -34,6 +40,7 @@ const Subscription = () => {
 			id: 'interactive',
 			name: 'Interactive',
 			price: '29,99 €',
+			amount: 2999,
 			period: '/mois',
 			children: 2,
 			avatars: 2,
@@ -53,6 +60,7 @@ const Subscription = () => {
 			id: 'premium',
 			name: 'Premium',
 			price: '39,99 €',
+			amount: 3999,
 			period: '/mois',
 			children: 3,
 			avatars: 3,
@@ -70,35 +78,9 @@ const Subscription = () => {
 		}
 	];
 
-	const handleSubscribe = async (packageId: string) => {
-		setLoading(packageId);
-		
-		try {
-			const response = await fetch('/api/stripe/create-checkout-session', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({ packageId }),
-			});
-
-			const data = await response.json();
-
-			if (data.success) {
-				// TODO: Rediriger vers Stripe
-				// window.location.href = data.url;
-				console.log('Redirection vers Stripe...');
-				alert(`Redirection vers Stripe pour le package ${packageId}`);
-			} else {
-				console.error('Erreur lors de la création de la session:', data.error);
-				alert('Erreur lors de la création de la session de paiement');
-			}
-		} catch (error) {
-			console.error('Erreur lors de l\'appel API:', error);
-			alert('Erreur de connexion. Veuillez réessayer.');
-		} finally {
-			setLoading(null);
-		}
+	const handleSubscribeClick = (pkg: any) => {
+		setSelectedPlan(pkg);
+		setOpenModal(true);
 	};
 
 	return (
@@ -192,28 +174,29 @@ const Subscription = () => {
 
 									{/* CTA Button */}
 									<Button 
-										onClick={() => handleSubscribe(pkg.id)}
-										disabled={loading === pkg.id}
+										onClick={() => handleSubscribeClick(pkg)}
 										className={`w-full py-2.5 text-sm font-medium ${
 											pkg.popular 
 												? 'bg-[#7372B7] hover:bg-[#6A69A8] text-white' 
 												: 'bg-gray-900 hover:bg-gray-800 text-white'
 										}`}
 									>
-										{loading === pkg.id ? (
-											<>
-												<Loader2 className="w-4 h-4 mr-2 animate-spin" />
-												Redirection...
-											</>
-										) : (
 											'Commencer'
-										)}
 									</Button>
 								</CardContent>
 							</Card>
 						);
 					})}
 				</div>
+
+				{openModal && selectedPlan && (
+					<Elements stripe={stripePromise}>
+						<PaymentModal
+							selectedPlan={selectedPlan}
+							onClose={() => setOpenModal(false)}
+						/>
+					</Elements>
+				)}
 			</div>
 		</div>
 	);

@@ -63,7 +63,13 @@ export function LoginForm({
 		setIsLoading(true);
 		const result = await dispatch(loginUser({ email, password }));
 		if (loginUser.fulfilled.match(result)) {
-			router.push('/settings');
+			// router.push('/settings');
+			const userData = result.payload;
+			if (!userData.plan) {
+				router.push('/subscription');
+			} else {
+				router.push('/avatar');
+			}
 		} else {
 			console.error(result.payload); // error message
 		}
@@ -100,8 +106,17 @@ export function LoginForm({
 			}
 		try {
 			// await loginWithGoogle({ autoCreate: false});
-			await dispatch(loginWithGoogle({ location })).unwrap();
-			router.push('/settings');
+			// await dispatch(loginWithGoogle({ location })).unwrap();
+			// router.push('/settings');
+			const result = await dispatch(loginWithGoogle({ location }));
+			if (loginWithGoogle.fulfilled.match(result)) {
+				const userData = result.payload;
+				if (!userData.plan) {
+					router.push('/subscription');
+				} else {
+					router.push('/avatar');
+				}
+			}
 		} catch (error) {
 			console.error('Erreur de connexion Google:', error);
 		}
