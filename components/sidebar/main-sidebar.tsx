@@ -19,6 +19,7 @@ import { useStudentsStore } from '@/store/studentStore';
 import { toast } from 'react-toastify';
 import { useAppDispatch, useAppSelector } from '@/store/store';
 import { logout, updateUserPresence } from '@/store/user/userThunk';
+import { clearActiveProfile } from '@/store/user/userSlice';
 
 
 const navigation = [
@@ -68,7 +69,7 @@ const navigationBottom = [
 
 export function MainSidebar() {
 	const dispatch = useAppDispatch();
-	const { uid, user } = useAppSelector(state => state.user);
+	const { uid, user, activeProfile } = useAppSelector(state => state.user);
 	// const { currentUser, uid, updateUserPresence, logout } = useStudentsStore();
 	const pathname = usePathname();
 	const route = useRouter();
@@ -82,6 +83,7 @@ export function MainSidebar() {
 		if(uid){
 			await dispatch(updateUserPresence({ uid, onlineStatus: false }));
 		}
+		dispatch(clearActiveProfile());
 		const result = await dispatch(logout());
 		if (logout.fulfilled.match(result)) {
 			route.push('/login');
@@ -162,14 +164,14 @@ export function MainSidebar() {
 					<div className='flex items-center gap-4'>
 						<Avatar>
 							<AvatarImage
-								src={user?.profileImage || '/images/picture.png'}
+								src={activeProfile?.avatar || '/images/picture.png'}
 								alt='Avatar'
 							/>
 							<AvatarFallback>CN</AvatarFallback>
 						</Avatar>
 						<div className='flex flex-col'>
 							<span className='text-sm font-medium text-[#324054]'>
-								{user?.name}
+								{activeProfile?.firstName || activeProfile?.lastName ? `${activeProfile.firstName || ''} ${activeProfile.lastName || ''}`.trim() : ''}
 							</span>
 							<span className='text-xs text-[#71839B]'>
 								{user?.email}

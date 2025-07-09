@@ -8,6 +8,8 @@ import { Check, Eye, EyeOff, HelpCircle, Key, ArrowRight, Edit3, Sparkles } from
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import bcrypt from 'bcryptjs';
+import { setActiveProfile } from '@/store/user/userSlice';
+import { useAppDispatch } from '@/store/store';
 
 interface Avatar {
 	// id: number;
@@ -20,6 +22,7 @@ interface Avatar {
 	lastName: string;
 	avatar: string;
 	pin: string;
+	isParent:boolean
 }
 
 interface LoginAvatarProps {
@@ -27,6 +30,7 @@ interface LoginAvatarProps {
 }
 
 const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
+	const dispatch = useAppDispatch();
 	const [selectedAvatar, setSelectedAvatar] = useState<Avatar | null>(null);
 	const [pinCode, setPinCode] = useState<string>('');
 	const [showPin, setShowPin] = useState<boolean>(false);
@@ -49,7 +53,20 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 	}, [selectedAvatar]);
 
 	const handleAvatarLogin = async () => {
-	if (!selectedAvatar || pinCode.length !== 4) return;
+		if (!selectedAvatar) return;
+		// Parent profile: skip PIN validation
+		if (selectedAvatar.isParent) {
+			setIsSuccess(true);
+			dispatch(setActiveProfile(selectedAvatar));
+			console.log('Connexion réussie pour:', selectedAvatar.firstName);
+			setTimeout(() => {
+				router.push('/settings');
+			}, 800);
+			return;
+		}
+
+		// Child profile: requires PIN
+		if (pinCode.length !== 4) return;
 		setIsLoading(true);
 		setErrorMessage('');
 		try {
@@ -57,6 +74,7 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 			const isMatch = await bcrypt.compare(pinCode, selectedAvatar.pin);
 			if (isMatch) {
 				setIsSuccess(true);
+				dispatch(setActiveProfile(selectedAvatar));
 				console.log('Connexion réussie pour:', selectedAvatar.firstName);
 				// Success animation before redirect
 				setTimeout(() => {
@@ -103,7 +121,7 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 								<div className="relative">
 									<div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden ring-3 sm:ring-4 ring-emerald-100 shadow-lg">
 										<Image
-											src={selectedAvatar.avatar}
+											src={selectedAvatar.avatar || '/images/picture.png'}
 											alt={selectedAvatar.firstName}
 											width={80}
 											height={80}
@@ -153,7 +171,7 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 								>
 									<div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden ring-2 sm:ring-3 ring-slate-200 group-hover:ring-emerald-300 shadow-lg group-hover:shadow-xl transition-all duration-300">
 										<Image
-											src={avatar.avatar}
+											src={avatar.avatar || '/images/picture.png'}
 											alt={avatar.firstName}
 											width={80}
 											height={80}
@@ -179,7 +197,7 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 				)}
 
 				{/* Code PIN moderne avec meilleure UX */}
-				{selectedAvatar && (
+				{selectedAvatar && !selectedAvatar?.isParent && (
 					<div className="space-y-4 sm:space-y-6 mb-6 sm:mb-8 animate-slide-up">
 						<div className="text-center">
 							<Label className="text-slate-700 font-semibold mb-3 sm:mb-4 block flex items-center justify-center text-sm sm:text-base">
@@ -237,7 +255,7 @@ const LoginAvatar: React.FC<LoginAvatarProps> = ({ existingAvatars }) => {
 					<div className="animate-slide-up">
 						<Button
 							onClick={handleAvatarLogin}
-							disabled={!selectedAvatar || pinCode.length !== 4 || isLoading}
+							disabled={!selectedAvatar || (selectedAvatar && !selectedAvatar.isParent && pinCode.length !== 4) || isLoading}
 							className={`w-full h-12 sm:h-14 text-sm sm:text-base font-semibold rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group ${
 								isSuccess 
 									? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' 

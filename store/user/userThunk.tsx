@@ -49,21 +49,36 @@ export const createUser = createAsyncThunk<any, any>(
 			const userDoc = {
 				email: user.email,
 				name: name || '',
-				createdAt: serverTimestamp(),
+				// createdAt: serverTimestamp(),
 				role: 'student',
 				type: 'authWithEmail',
 				status: 'Pending',
-				updatedAt: serverTimestamp(),
-				grade: '',
-				mayenneDeClasse: 0,
+				// updatedAt: serverTimestamp(),
+				// grade: '',
+				// mayenneDeClasse: 0,
 				online: false,
-				profileImage: '',
+				// profileImage: '',
 				location,
 			};
 
 			// Store user doc in Firestore
 			const userRef = doc(db, 'users', user.uid);
 			await setDoc(userRef, userDoc);
+			// Immediately create default child profile (parent profile)
+			const fullName = name;
+			const [firstName, ...rest] = fullName.trim().split(' ');
+			const lastName = rest.join(' ');
+			await addDoc(collection(db, 'users', user.uid, 'profiles'), {
+				firstName: firstName || '',
+				lastName: lastName || '',
+				avatar: '',
+				pin: '',
+				createdAt: serverTimestamp(),
+				grade: '',
+				mayenneDeClasse: 0,
+				updatedAt: serverTimestamp(),
+				isParent: true,
+			});
 
 			toast.success('Account created successfully!');
 			return { id: user.uid, ...userDoc };
@@ -146,18 +161,33 @@ export const loginWithGoogle = createAsyncThunk<any, any>(
 				const newUserData = {
 					email: user.email,
 					name: user.displayName || '',
-					createdAt: serverTimestamp(),
+					// createdAt: serverTimestamp(),
 					role: 'student',
 					type: 'authWithGoogle',
 					status: 'Pending',
-					updatedAt: serverTimestamp(),
-					grade: '',
-					mayenneDeClasse: 0,
+					// updatedAt: serverTimestamp(),
+					// grade: '',
+					// mayenneDeClasse: 0,
 					online: false,
-					profileImage: '',
+					// profileImage: '',
 					location,
 				};
 				await setDoc(userRef, newUserData);
+				// Create default profile for Google signup
+				const fullName = user.displayName || '';
+				const [firstName, ...rest] = fullName.trim().split(' ');
+				const lastName = rest.join(' ');
+				await addDoc(collection(db, 'users', user.uid, 'profiles'), {
+					firstName: firstName || '',
+					lastName: lastName || '',
+					avatar: '',
+					pin: '',
+					createdAt: serverTimestamp(),
+					updatedAt: serverTimestamp(),
+					isParent: true,
+					grade: '',
+					mayenneDeClasse: 0,
+				});
 				return { id: user.uid, ...newUserData };
 			}
 
@@ -213,6 +243,25 @@ export const updateUserProfile = createAsyncThunk<any, Partial<any>>(
 			console.error('Profile update error:', error.message);
 			toast.error(error.message || 'Profile update failed');
 			return thunkAPI.rejectWithValue(error.message);
+		}
+	}
+);
+
+export const updateProfile = createAsyncThunk<any, any>(
+	'user/updateChildProfile',
+	async ({ uid, profileId, updates }, { rejectWithValue }) => {
+		try {
+			const profileRef = doc(db, 'users', uid, 'profiles', profileId);
+			await updateDoc(profileRef, {
+				...updates,
+				updatedAt: serverTimestamp(),
+			});
+			toast.success('Profile updated successfully!');
+			return true;
+		} catch (error: any) {
+			console.error('Profile update error:', error.message);
+			toast.error(error.message || 'Failed to update profile');
+			return rejectWithValue(error.message);
 		}
 	}
 );
@@ -327,7 +376,8 @@ export const createChildProfileThunk = createAsyncThunk<any, any>(
 			const userRef = doc(db, 'users', uid);
 			const profilesRef = collection(db, 'users', uid, 'profiles');
 			const existingProfilesSnap = await getDocs(profilesRef);
-			const existingCount = existingProfilesSnap.size;
+			const profiles = existingProfilesSnap.docs.map(doc => doc.data());
+			const existingCount = profiles.filter(p => !p.isParent).length;
 			const userDocSnap = await getDoc(userRef);
 			const userData = userDocSnap.exists() ? userDocSnap.data() : null;
 			const allowedChildren = Number(userData?.plan?.children || 0);
@@ -342,7 +392,11 @@ export const createChildProfileThunk = createAsyncThunk<any, any>(
 				lastName,
 				avatar,
 				pin: hashedPin,
-				createdAt: new Date(),
+				createdAt: serverTimestamp(),
+				updatedAt: serverTimestamp(),
+				isParent: false,
+				grade: '',
+				mayenneDeClasse: 0,
 			});
 			return { success: true };
 		} catch (error: any) {

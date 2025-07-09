@@ -58,10 +58,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 				body: JSON.stringify({
 					paymentMethodId: paymentMethod.id,
 					plan: selectedPlan, // full plan object
+					user
 				}),
 			});
 
-			const { subscriptionId, backendError } = await res.json();
+			const { subscriptionId,currentPeriodEnd, backendError } = await res.json();
 			if (backendError) throw new Error(backendError);
 
 			// Step 3: Save to Firestore
@@ -72,10 +73,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 						name: selectedPlan.name,
 						id: selectedPlan.id,
 						price: selectedPlan.price,
-						amount: selectedPlan.amount,
+						amount: selectedPlan.amount / 100,
 						children: selectedPlan.children,
 						avatars: selectedPlan.avatars,
 						subscriptionId,
+						currentPeriodEnd,
 					},
 				})
 			);

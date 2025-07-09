@@ -17,7 +17,9 @@ import { useStudentsStore } from '@/store/studentStore';
 import { uploadFile } from "@/lib/function";
 import { toast } from 'react-toastify';
 import { useAppDispatch, useAppSelector } from '@/store/store';
-import { changeUserPassword, updateUserProfile } from '@/store/user/userThunk';
+import { changeUserPassword, updateProfile, } from '@/store/user/userThunk';
+import { setActiveProfile } from '@/store/user/userSlice';
+import { serverTimestamp } from 'firebase/firestore';
 
 interface FormData {
 	name: string;
@@ -32,7 +34,7 @@ interface FormData {
 const ProfileMain = () => {
 	const dispatch = useAppDispatch();
 	const { currentUser,  } = useStudentsStore();
-	const { user } = useAppSelector(state => state.user);
+	const { user, activeProfile, uid } = useAppSelector(state => state.user);
 	const [formData, setFormData] = useState<FormData>({
 		name: '',
 		email: '',
@@ -44,19 +46,31 @@ const ProfileMain = () => {
 	});
 	const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+	const millisNow = Date.now();
+	const millisEnd = (user?.plan?.currentPeriodEnd ?? 0) * 1000;
+	const daysRemaining = millisEnd > millisNow
+	? Math.ceil((millisEnd - millisNow) / (1000 * 60 * 60 * 24))
+	: 0;
+
 	useEffect(() => {
 		if (user) {
 			setFormData(prev => ({
 				...prev,
-				name: user.name ?? prev.name,
 				email: user.email ?? prev.email,
-				currentGradeLevel:
-					user.grade ?? prev.currentGradeLevel,
-				mayenneDeClasse: user.mayenneDeClasse ?? prev.mayenneDeClasse,
 			}));
-			setSelectedImage(user?.profileImage ?? null);
 		}
-	}, [user]);
+		if(activeProfile){
+			const fullName = `${activeProfile.firstName ?? ''} ${activeProfile.lastName ?? ''}`.trim();
+			setFormData(prev => ({
+				...prev,
+				name: fullName,
+				currentGradeLevel:
+					activeProfile.grade ?? prev.currentGradeLevel,
+				mayenneDeClasse: activeProfile.mayenneDeClasse ?? prev.mayenneDeClasse,
+			}));
+			setSelectedImage(activeProfile?.avatar ?? null);
+		}
+	}, [user,activeProfile]);
 
 	const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
@@ -69,7 +83,13 @@ const ProfileMain = () => {
 				if (downloadURL) {
 					setSelectedImage(downloadURL as string);
 					// Mettre à jour l'image de profil dans le store
-					await dispatch(updateUserProfile({ profileImage: downloadURL as string }));
+					// await dispatch(updateUserProfile({ profileImage: downloadURL as string }));
+					await dispatch(updateProfile({ uid: uid, profileId: activeProfile.id, updates: { avatar: downloadURL as string } }));
+					dispatch(setActiveProfile({
+					...activeProfile,
+					avatar: downloadURL,
+					updatedAt: serverTimestamp(),
+					}));
 				}
 			} catch (error) {
 				console.error('Error uploading image:', error);
@@ -111,11 +131,32 @@ const ProfileMain = () => {
 
 		try {
 			// 1. Toujours mettre à jour le profil
-			await dispatch(updateUserProfile({
-				name,
-				email,
+			// await dispatch(updateUserProfile({
+			// 	name,
+			// 	email,
+			// 	grade: currentGradeLevel,
+			// 	mayenneDeClasse,
+			// }));
+			const [firstName, ...rest] = name.trim().split(' ');
+			const lastName = rest.join(' ');
+			await dispatch(updateProfile({
+			uid: uid,
+			profileId: activeProfile.id,
+			updates: {
+				firstName,
+				lastName,
 				grade: currentGradeLevel,
 				mayenneDeClasse,
+			},
+			}));
+			// Update Redux + cookie manually
+			dispatch(setActiveProfile({
+				...activeProfile,
+				firstName,
+				lastName,
+				grade: currentGradeLevel,
+				mayenneDeClasse,
+				updatedAt: serverTimestamp(),
 			}));
 
 			// 2. Conditionnellement changer le mot de passe
@@ -180,6 +221,7 @@ const ProfileMain = () => {
 						className='hidden'
 					/>
 				</div>
+				{activeProfile?.isParent && (
 				<div className='bg-white w-full shadow-[0px_2px_30px_0px_#0000000D] rounded-lg'>
 					<div className='flex items-center justify-between bg-[#F5F5F5] p-2 border border-[#ECECEC] border-[1.18px] rounded-t-lg'>
 						<p className='text-[20.72px] font-semibold text-[#2C2C2C]'>
@@ -196,11 +238,11 @@ const ProfileMain = () => {
 									PLAN NAME
 								</p>
 								<p className='font-semibold text-[18px] leading-[100%] tracking-[0] text-[#2C2C2C]'>
-									Student Plan
+									{user?.plan?.name}
 								</p>
 							</div>
 							<div>
-								<p className='text-[#696969] font-medium text-[10px] leading-[100%] tracking-[0] capitalize mb-1'>
+								<p className='text-[#110c0c] font-medium text-[10px] leading-[100%] tracking-[0] capitalize mb-1'>
 									BILLING CYCLE
 								</p>
 								<p className='font-semibold text-[18px] leading-[100%] tracking-[0] text-[#2C2C2C]'>
@@ -212,7 +254,7 @@ const ProfileMain = () => {
 									PLAN COST
 								</p>
 								<p className='font-semibold text-[18px] leading-[100%] tracking-[0] text-[#2C2C2C]'>
-									$50
+									€ {user?.plan?.amount}
 								</p>
 							</div>
 						</div>
@@ -220,7 +262,7 @@ const ProfileMain = () => {
 							<p className='text-[#696969] text-sm font-medium'>
 								Validity:{' '}
 								<span className='text-[#2C2C2C] font-medium text-[14.8px]'>
-									10 Days Remaining
+									{`${daysRemaining} Days Remaining`}
 								</span>
 							</p>
 						</div>
@@ -229,6 +271,7 @@ const ProfileMain = () => {
 						</div>
 					</div>
 				</div>
+				)}
 			</div>
 
 			{/* Form Section */}
@@ -325,6 +368,7 @@ const ProfileMain = () => {
 				</div>
 
 				{/* Change Password */}
+				{activeProfile?.isParent && (
 				<div className='pt-2'>
 					<h3 className='text-[25px] font-bold text-black mb-5'>
 						Change Password
@@ -470,7 +514,7 @@ const ProfileMain = () => {
 							</div>
 						</div>
 					</div>
-				</div>
+				</div>)}
 
 				{/* Save Changes */}
 				<div className='pt-4'>

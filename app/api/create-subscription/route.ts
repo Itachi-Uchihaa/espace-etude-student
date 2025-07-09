@@ -8,12 +8,12 @@ if (!stripeSecretKey) {
 	);
 }
 const stripe = new Stripe(stripeSecretKey, {
-	apiVersion: '2025-06-30.basil',
+	apiVersion: '2023-10-16' as any,
 });
 
 export async function POST(req: NextRequest) {
 	try {
-		const { plan, paymentMethodId } = await req.json();
+		const { plan, paymentMethodId, user } = await req.json();
 
 		console.log('[CREATE_SUBSCRIPTION] Plan:', plan);
 		console.log('[CREATE_SUBSCRIPTION] PaymentMethodId:', paymentMethodId);
@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
 
 		// 3. Create Customer and attach default payment method
 		const customer = await stripe.customers.create({
+			email: user.email,
+			name: user.name,
 			payment_method: paymentMethodId,
 			invoice_settings: {
 				default_payment_method: paymentMethodId,
@@ -63,6 +65,7 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json({
 			subscriptionId: subscription.id,
 			customerId: customer.id,
+			currentPeriodEnd: (subscription as any).current_period_end
 		});
 	} catch (err: any) {
 		console.error('[STRIPE_SUBSCRIPTION_ERROR]', err.message, err);

@@ -5,6 +5,7 @@ import { loginUser, loginWithGoogle, logout } from './userThunk';
 export interface UserState {
 	user: any | null;
 	avatars: any;
+	activeProfile: any | null;
 	uid: string | null;
 	isLoading: boolean;
 	error: unknown | null;
@@ -13,6 +14,7 @@ export interface UserState {
 const initialState: UserState = {
 	user: getCookie('user') ? JSON.parse(getCookie('user') as string) : null,
 	avatars: [],
+	activeProfile: getCookie('activeProfile') ? JSON.parse(getCookie('activeProfile') as string): null,
 	uid: (getCookie('uid') as string) || null,
 	isLoading: false,
 	error: null,
@@ -25,6 +27,14 @@ export const userSlice = createSlice({
 		// Additional reducers if needed
 		setChildProfiles: (state, action) => {
 			state.avatars = action.payload;
+		},
+		setActiveProfile: (state, action) => {
+		state.activeProfile = action.payload;
+		setCookie('activeProfile', JSON.stringify(action.payload));
+		},
+		clearActiveProfile: state => {
+			state.activeProfile = null;
+			deleteCookie('activeProfile');
 		},
 	},
 	extraReducers: builder => {
@@ -81,5 +91,5 @@ export const userSlice = createSlice({
 	},
 });
 
-export const { setChildProfiles } = userSlice.actions;
+export const { setChildProfiles, setActiveProfile, clearActiveProfile } = userSlice.actions;
 export default userSlice.reducer;
