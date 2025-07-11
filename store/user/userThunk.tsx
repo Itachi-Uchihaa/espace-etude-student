@@ -20,6 +20,7 @@ import {
 	onSnapshot,
 	serverTimestamp,
 	setDoc,
+	Timestamp,
 	updateDoc,
 } from 'firebase/firestore';
 import { toast } from 'react-toastify';
@@ -363,6 +364,35 @@ export const saveUserPlan = createAsyncThunk<any, any>(
 			await setDoc(doc(db, 'users', uid), { plan }, { merge: true });
 		} catch (error: any) {
 			console.error('[SAVE_USER_PLAN_ERROR]', error.message);
+			return rejectWithValue(error.message);
+		}
+	}
+);
+
+export const saveUserSubscription = createAsyncThunk<any, any>(
+	'user/saveUserSubscription',
+	async (
+		{ subscription, customerId, user, selectedPlan },
+		{ rejectWithValue }
+	) => {
+		try {
+			await setDoc(doc(db, 'subscriptions', subscription.id), {
+				subscriptionId: subscription.id,
+				customerId,
+				userId: user.uid,
+				email: user.email,
+				planName: selectedPlan.name,
+				planId: selectedPlan.id,
+				amount: selectedPlan.amount / 100,
+				currency: 'eur',
+				status: subscription.status,
+				currentPeriodEnd: Timestamp.fromMillis(
+					subscription.current_period_end * 1000
+				),
+				createdAt: serverTimestamp(),
+			});
+		} catch (error: any) {
+			console.error('[SAVE_USER_SUBSCRIPTION_ERROR]', error.message);
 			return rejectWithValue(error.message);
 		}
 	}

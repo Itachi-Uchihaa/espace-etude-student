@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/store';
-import { saveUserPlan } from '@/store/user/userThunk';
+import { saveUserPlan, saveUserSubscription } from '@/store/user/userThunk';
 
 interface PaymentModalProps {
 	selectedPlan: {
@@ -62,7 +62,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 				}),
 			});
 
-			const { subscriptionId,currentPeriodEnd, backendError } = await res.json();
+			const { subscription, customerId, backendError } = await res.json();
 			if (backendError) throw new Error(backendError);
 
 			// Step 3: Save to Firestore
@@ -76,12 +76,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 						amount: selectedPlan.amount / 100,
 						children: selectedPlan.children,
 						avatars: selectedPlan.avatars,
-						subscriptionId,
-						currentPeriodEnd,
+						subscriptionId: subscription.id,
+						currentPeriodEnd: subscription.current_period_end,
 					},
 				})
 			);
 
+			await dispatch(
+				saveUserSubscription({
+					subscription,
+					customerId,
+					user: { uid, email: user.email },
+					selectedPlan,
+				})
+			);
 			onClose();
 			router.push('/avatar');
 		} catch (err: any) {

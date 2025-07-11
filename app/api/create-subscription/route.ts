@@ -63,9 +63,8 @@ export async function POST(req: NextRequest) {
 		});
 
 		return NextResponse.json({
-			subscriptionId: subscription.id,
+			subscription,
 			customerId: customer.id,
-			currentPeriodEnd: (subscription as any).current_period_end
 		});
 	} catch (err: any) {
 		console.error('[STRIPE_SUBSCRIPTION_ERROR]', err.message, err);
